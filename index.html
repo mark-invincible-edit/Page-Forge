@@ -156,9 +156,12 @@ dialog h3{margin-top:0}
         <button id="an_all" style="width:100%;margin-top:6px">Apply to all elements of this type</button>
         <p class="hint">Hover over elements in the preview to try hover effects. Entrance animations play when the page loads, and everything is saved in the exported HTML.</p>
       </div>
+      <h3>Layer order</h3>
+      <div class="g"><button id="z_up">▲ Forward</button><button id="z_dn">▼ Backward</button><button id="z_ft">⤒ Bring to front</button><button id="z_bk">⤓ Send to back</button></div>
+      <p class="hint" id="z_v" style="margin:6px 0 0"></p>
       <h3>Element</h3>
       <div class="g">
-        <button id="a_up">↑ Move up</button><button id="a_dn">↓ Move down</button>
+        <button id="a_up">↑ Earlier in page</button><button id="a_dn">↓ Later in page</button>
         <button id="a_dp">Duplicate</button><button id="a_rp">Reset drag</button>
       </div>
       <button id="a_rs" style="width:100%;margin-top:6px">Reset size</button>
@@ -239,7 +242,7 @@ function fill(){const t=sel,c=getComputedStyle(t),n=t.tagName.toLowerCase();
  if(leaf)$('#f_txt').value=t.textContent;
  $('#f_src').value=t.getAttribute('src')||'';$('#f_alt').value=t.getAttribute('alt')||'';$('#f_href').value=t.getAttribute('href')||'';
  $('#f_fs').value=parseInt(c.fontSize);$('#f_c').value=hex(c.color)||'#000000';$('#f_bg').value=hex(c.backgroundColor)||'#ffffff';
- $('#f_al').value='';$('#f_ff').value='';$('#f_pd').value=parseInt(c.paddingTop);$('#f_rd').value=parseInt(c.borderTopLeftRadius);$('#f_w').value=t.style.width;fillA();fillD();fillFx()}
+ $('#f_al').value='';$('#f_ff').value='';$('#f_pd').value=parseInt(c.paddingTop);$('#f_rd').value=parseInt(c.borderTopLeftRadius);$('#f_w').value=t.style.width;fillA();fillD();fillFx();fillZ()}
 function down(e){if(e.button||(edit&&edit.contains(e.target)))return;
  const t=e.target;if(edit)endEdit();pick(t);e.preventDefault();
  if(sel===D.body)return;
@@ -428,6 +431,17 @@ function setFx(){if(!sel)return;const b=+$('#o_b').value,o=+$('#o_o').value;$('#
 function fillFx(){const m=sel.style.filter.match(/blur\(([\d.]+)px\)/),b=m?+m[1]:0,o=sel.style.opacity===''?100:Math.round(parseFloat(sel.style.opacity)*100);
  $('#o_b').value=b;$('#o_o').value=o;$('#o_bv').textContent=b;$('#o_ov').textContent=o}
 $('#o_x').onclick=()=>{if(!sel)return;$('#o_b').value=0;$('#o_o').value=100;setFx();snap()};
+
+/* ---------- layer order (z-index) ---------- */
+function fillZ(){const z=parseInt(getComputedStyle(sel).zIndex);$('#z_v').textContent='Layer: '+(isNaN(z)?'default':z)+' – higher layers sit on top of lower ones.'}
+function setZ(m){if(!sel||sel===D.body)return;const c=getComputedStyle(sel);let z=parseInt(c.zIndex);if(isNaN(z))z=0;
+ const a=[...D.body.querySelectorAll('*')].filter(e=>e!==sel).map(e=>parseInt(getComputedStyle(e).zIndex)).filter(n=>!isNaN(n));
+ if(m=='up')z++;else if(m=='dn')z--;else if(m=='ft')z=Math.max(0,...a)+1;else z=Math.min(0,...a)-1;
+ if(c.position=='static')sel.style.position='relative';
+ sel.style.zIndex=z;
+ if(z<0&&sel.parentElement&&sel.parentElement!==D.body)sel.parentElement.style.isolation='isolate';
+ snap();fillZ()}
+[['z_up','up'],['z_dn','dn'],['z_ft','ft'],['z_bk','bk']].forEach(([i,m])=>$('#'+i).onclick=()=>setZ(m));
 
 load(TPL['Launch page']);
 </script>
