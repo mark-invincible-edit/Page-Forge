@@ -130,6 +130,10 @@ dialog h3{margin-top:0}
       </div>
       </div>
       <div id="pD" hidden>
+        <h3>Blur &amp; transparency</h3>
+        <label>Blur (<span id="o_bv">0</span>px)<input id="o_b" type="range" min="0" max="30" step="0.5" value="0"></label>
+        <label>Opacity (<span id="o_ov">100</span>%)<input id="o_o" type="range" min="0" max="100" value="100"></label>
+        <button id="o_x" style="width:100%">Reset blur &amp; opacity</button>
         <h3>Gradient background</h3>
         <div class="row"><label>From<input id="g1" type="color" value="#ff7a4d"></label><label>To<input id="g2" type="color" value="#6a11cb"></label></div>
         <label>Angle<input id="gad" type="range" min="0" max="360" value="135"></label>
@@ -235,7 +239,7 @@ function fill(){const t=sel,c=getComputedStyle(t),n=t.tagName.toLowerCase();
  if(leaf)$('#f_txt').value=t.textContent;
  $('#f_src').value=t.getAttribute('src')||'';$('#f_alt').value=t.getAttribute('alt')||'';$('#f_href').value=t.getAttribute('href')||'';
  $('#f_fs').value=parseInt(c.fontSize);$('#f_c').value=hex(c.color)||'#000000';$('#f_bg').value=hex(c.backgroundColor)||'#ffffff';
- $('#f_al').value='';$('#f_ff').value='';$('#f_pd').value=parseInt(c.paddingTop);$('#f_rd').value=parseInt(c.borderTopLeftRadius);$('#f_w').value=t.style.width;fillA();fillD()}
+ $('#f_al').value='';$('#f_ff').value='';$('#f_pd').value=parseInt(c.paddingTop);$('#f_rd').value=parseInt(c.borderTopLeftRadius);$('#f_w').value=t.style.width;fillA();fillD();fillFx()}
 function down(e){if(e.button||(edit&&edit.contains(e.target)))return;
  const t=e.target;if(edit)endEdit();pick(t);e.preventDefault();
  if(sel===D.body)return;
@@ -415,6 +419,15 @@ hs.addEventListener('pointerdown',e=>{const d=e.target.dataset.d;if(!d||!sel)ret
  const up=()=>{h.removeEventListener('pointermove',mv);h.removeEventListener('pointerup',up);h.removeEventListener('pointercancel',up);hb.hidden=true;snap();fill()};
  h.addEventListener('pointermove',mv);h.addEventListener('pointerup',up);h.addEventListener('pointercancel',up)});
 $('#a_rs').onclick=()=>{if(sel){const s=sel.style;s.width='';s.height='';s.objectFit='';snap();fill()}};
+
+/* ---------- blur & opacity ---------- */
+function setFx(){if(!sel)return;const b=+$('#o_b').value,o=+$('#o_o').value;$('#o_bv').textContent=b;$('#o_ov').textContent=o;
+ let f=sel.style.filter.replace(/blur\([^)]*\)\s*/g,'').trim();if(b>0)f=(f+' blur('+b+'px)').trim();
+ sel.style.filter=f;sel.style.opacity=o<100?o/100:''}
+['o_b','o_o'].forEach(i=>{$('#'+i).addEventListener('input',setFx);$('#'+i).addEventListener('change',()=>sel&&snap())});
+function fillFx(){const m=sel.style.filter.match(/blur\(([\d.]+)px\)/),b=m?+m[1]:0,o=sel.style.opacity===''?100:Math.round(parseFloat(sel.style.opacity)*100);
+ $('#o_b').value=b;$('#o_o').value=o;$('#o_bv').textContent=b;$('#o_ov').textContent=o}
+$('#o_x').onclick=()=>{if(!sel)return;$('#o_b').value=0;$('#o_o').value=100;setFx();snap()};
 
 load(TPL['Launch page']);
 </script>
