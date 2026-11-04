@@ -66,6 +66,9 @@ dialog h3{margin-top:0}
 #dev{position:relative}
 #hw{position:absolute;left:0;right:0;overflow:hidden;pointer-events:none}
 #hs{position:absolute}
+#gx,#gy{position:absolute;background:#ff2d95;pointer-events:none;z-index:1}
+#gx{top:0;bottom:0;width:1px}
+#gy{left:0;right:0;height:1px}
 #hs i{position:absolute;width:11px;height:11px;background:#fff;border:2px solid #e0552b;border-radius:3px;transform:translate(-50%,-50%);pointer-events:auto;touch-action:none;box-shadow:0 1px 4px #0005}
 #hs i:hover{background:#e0552b}
 [data-d=nw]{left:0;top:0;cursor:nwse-resize}[data-d=n]{left:50%;top:0;cursor:ns-resize}[data-d=ne]{left:100%;top:0;cursor:nesw-resize}[data-d=e]{left:100%;top:50%;cursor:ew-resize}[data-d=se]{left:100%;top:100%;cursor:nwse-resize}[data-d=s]{left:50%;top:100%;cursor:ns-resize}[data-d=sw]{left:0;top:100%;cursor:nesw-resize}[data-d=w]{left:0;top:50%;cursor:ew-resize}
@@ -98,9 +101,9 @@ dialog h3{margin-top:0}
     <h3>Ready-made sections</h3>
     <div class="g"><button data-s="nav">Sticky navbar</button><button data-s="hero">Hero banner</button><button data-s="feat">Features</button><button data-s="price">Pricing</button><button data-s="form">Contact form</button><button data-s="foot">Footer</button></div>
     <h3>Elements</h3><div id="ly"></div>
-    <p class="hint" style="margin-top:16px"><b>Click</b> an element to select it.<br><b>Drag</b> it to move it, or pull the square handles to resize (Shift flips the aspect lock).<br><b>Double-click</b> text to type.<br><b>Delete</b> key removes it.<br>New elements land after the selected one.</p>
+    <p class="hint" style="margin-top:16px"><b>Click</b> an element to select it.<br><b>Drag</b> it to move it (pink guides snap it to centers and edges; hold Alt to move freely), or pull the square handles to resize (Shift flips the aspect lock).<br><b>Double-click</b> text to type.<br><b>Delete</b> key removes it.<br>New elements land after the selected one.</p>
   </aside>
-  <div id="stage"><div id="dev"><div id="bar"><i></i><i></i><i></i><span>Untitled page</span></div><iframe id="fr" sandbox="allow-same-origin" title="Site preview"></iframe><div id="hw"><div id="hs" hidden><b id="hb" hidden></b><i data-d="nw"></i><i data-d="n"></i><i data-d="ne"></i><i data-d="e"></i><i data-d="se"></i><i data-d="s"></i><i data-d="sw"></i><i data-d="w"></i></div></div></div></div>
+  <div id="stage"><div id="dev"><div id="bar"><i></i><i></i><i></i><span>Untitled page</span></div><iframe id="fr" sandbox="allow-same-origin" title="Site preview"></iframe><div id="hw"><i id="gx" hidden></i><i id="gy" hidden></i><div id="hs" hidden><b id="hb" hidden></b><i data-d="nw"></i><i data-d="n"></i><i data-d="ne"></i><i data-d="e"></i><i data-d="se"></i><i data-d="s"></i><i data-d="sw"></i><i data-d="w"></i></div></div></div></div>
   <aside class="r">
     <p id="none" class="hint">Select an element on the page to edit its text, links, images, fonts and colors.</p>
     <div id="ifs" hidden>
@@ -247,8 +250,11 @@ function down(e){if(e.button||(edit&&edit.contains(e.target)))return;
  const t=e.target;if(edit)endEdit();pick(t);e.preventDefault();
  if(sel===D.body)return;
  const p=(t.style.translate||'').split(' '),bx=parseFloat(p[0])||0,by=parseFloat(p[1])||0,x=e.clientX,y=e.clientY;let m=0;
- const mv=v=>{const dx=v.clientX-x,dy=v.clientY-y;if(!m&&Math.abs(dx)+Math.abs(dy)<4)return;m=1;t.style.translate=(bx+dx)+'px '+(by+dy)+'px'};
- const up=()=>{D.removeEventListener('pointermove',mv);D.removeEventListener('pointerup',up);if(m)snap()};
+ const mv=v=>{if(!v.buttons){up();return}let dx=v.clientX-x,dy=v.clientY-y;if(!m&&Math.abs(dx)+Math.abs(dy)<4)return;
+  if(!m){m=1;snapInit(t)}
+  if(v.altKey)showG(null,null);else{const q=snapCalc(dx,dy);dx+=q.x;dy+=q.y;showG(q.gx,q.gy)}
+  t.style.translate=(bx+dx)+'px '+(by+dy)+'px'};
+ const up=()=>{D.removeEventListener('pointermove',mv);D.removeEventListener('pointerup',up);showG(null,null);if(m)snap();m=0};
  D.addEventListener('pointermove',mv);D.addEventListener('pointerup',up)}
 function dbl(e){const t=e.target;if(['IMG','HR','BODY','HTML'].includes(t.tagName))return;endEdit();
  edit=t;t.contentEditable='true';t.focus();t.addEventListener('blur',()=>{if(edit===t)endEdit()},{once:true})}
@@ -442,6 +448,21 @@ function setZ(m){if(!sel||sel===D.body)return;const c=getComputedStyle(sel);let 
  if(z<0&&sel.parentElement&&sel.parentElement!==D.body)sel.parentElement.style.isolation='isolate';
  snap();fillZ()}
 [['z_up','up'],['z_dn','dn'],['z_ft','ft'],['z_bk','bk']].forEach(([i,m])=>$('#'+i).onclick=()=>setZ(m));
+
+/* ---------- snapping while dragging ---------- */
+let SN=null;
+function snapInit(t){const r=t.getBoundingClientRect(),W=D.documentElement.clientWidth,xs=[0,W/2,W],ys=[];
+ const add=q=>{xs.push(q.left,(q.left+q.right)/2,q.right);ys.push(q.top,(q.top+q.bottom)/2,q.bottom)};
+ const pa=t.parentElement;if(pa&&pa!==D.body)add(pa.getBoundingClientRect());
+ let n=0;for(const e of D.body.querySelectorAll('*')){if(n>400)break;
+  if(e===t||t.contains(e)||e.contains(t)||/^(SCRIPT|STYLE|LINK|META|BR)$/.test(e.tagName))continue;
+  const q=e.getBoundingClientRect();if(q.width<2||q.height<2)continue;add(q);n++}
+ SN={r,xs,ys}}
+function snapCalc(dx,dy){const{r,xs,ys}=SN,TH=6;
+ const best=(mine,list)=>{let b=null;for(const m of mine)for(const q of list){const d=q-m;if(Math.abs(d)<=TH&&(!b||Math.abs(d)<Math.abs(b.d)))b={d,at:q}}return b};
+ const sx=best([r.left+dx,r.left+dx+r.width/2,r.right+dx],xs),sy=best([r.top+dy,r.top+dy+r.height/2,r.bottom+dy],ys);
+ return{x:sx?sx.d:0,y:sy?sy.d:0,gx:sx?sx.at:null,gy:sy?sy.at:null}}
+function showG(x,y){const a=$('#gx'),b=$('#gy');a.hidden=x==null;b.hidden=y==null;if(x!=null)a.style.left=x+'px';if(y!=null)b.style.top=y+'px'}
 
 load(TPL['Launch page']);
 </script>
